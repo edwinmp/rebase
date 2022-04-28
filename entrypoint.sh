@@ -43,7 +43,7 @@ done
 
 if [[ "$REBASEABLE" != "true" ]] ; then
 	echo "GitHub doesn't think that the PR is rebaseable!"
-	exit 1
+	exit 0
 fi
 
 BASE_REPO=$(echo "$pr_resp" | jq -r .base.repo.full_name)
