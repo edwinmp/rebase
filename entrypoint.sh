@@ -55,10 +55,14 @@ BASE_BRANCH=$(echo "$pr_resp" | jq -r .base.ref)
 
 echo "Setting User Login"
 
-USER_LOGIN="edwinmp"
+USER_LOGIN=$(jq -r ".comment.user.login" "$GITHUB_EVENT_PATH")
           
 if [[ "$USER_LOGIN" == "null" ]]; then
 	USER_LOGIN=$(jq -r ".pull_request.user.login" "$GITHUB_EVENT_PATH")
+fi
+
+if [[ "$USER_LOGIN" == "dependabot[bot]" ]]; then
+	USER_LOGIN="edwinmp"
 fi
 
 echo "Getting user info $AUTH_HEADER $API_HEADER $URI $USER_LOGIN"
