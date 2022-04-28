@@ -41,6 +41,8 @@ for ((i = 0 ; i < $MAX_RETRIES ; i++)); do
 	fi
 done
 
+echo "The PR is supposedly ready to rebase - $REBASEABLE"
+
 if [[ "$REBASEABLE" != "true" ]] ; then
 	echo "GitHub doesn't think that the PR is rebaseable!"
 	exit 0
