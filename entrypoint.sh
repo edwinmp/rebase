@@ -55,6 +55,11 @@ if [[ "$USER_LOGIN" == "null" ]]; then
 	USER_LOGIN=$(jq -r ".pull_request.user.login" "$GITHUB_EVENT_PATH")
 fi
 
+if [[ "$USER_LOGIN" == "dependabot[bot]" ]]; then
+	echo "This is a dependabot PR - will instead use an admin user login (edwinmp)"
+	USER_LOGIN="edwinmp"
+fi
+
 user_resp=$(curl -X GET -s -H "${AUTH_HEADER}" -H "${API_HEADER}" \
 	"${URI}/users/${USER_LOGIN}")
 
@@ -82,6 +87,9 @@ echo "Base branch for PR #$PR_NUMBER is $BASE_BRANCH"
 USER_TOKEN=${USER_LOGIN//-/_}_TOKEN
 UNTRIMMED_COMMITTER_TOKEN=${!USER_TOKEN:-$GITHUB_TOKEN}
 COMMITTER_TOKEN="$(echo -e "${UNTRIMMED_COMMITTER_TOKEN}" | tr -d '[:space:]')"
+
+
+echo "Setup GitHub configs before rebase"
 
 # See https://github.com/actions/checkout/issues/766 for motivation.
 git config --global --add safe.directory /github/workspace
