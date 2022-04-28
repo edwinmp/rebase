@@ -55,7 +55,7 @@ BASE_BRANCH=$(echo "$pr_resp" | jq -r .base.ref)
 
 echo "Setting User Login"
 
-USER_LOGIN=$(jq -r ".comment.user.login" "$GITHUB_EVENT_PATH")
+USER_LOGIN="edwinmp"
           
 if [[ "$USER_LOGIN" == "null" ]]; then
 	USER_LOGIN=$(jq -r ".pull_request.user.login" "$GITHUB_EVENT_PATH")
