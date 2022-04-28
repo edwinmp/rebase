@@ -41,15 +41,19 @@ for ((i = 0 ; i < $MAX_RETRIES ; i++)); do
 	fi
 done
 
-echo "The PR is supposedly ready to rebase - $REBASEABLE"
+echo "Checking if PR is rebaseable - $REBASEABLE"
 
 if [[ "$REBASEABLE" != "true" ]] ; then
 	echo "GitHub doesn't think that the PR is rebaseable!"
 	exit 0
 fi
 
+echo "Setting base repo and base branch"
+
 BASE_REPO=$(echo "$pr_resp" | jq -r .base.repo.full_name)
 BASE_BRANCH=$(echo "$pr_resp" | jq -r .base.ref)
+
+echo "Setting User Login"
 
 USER_LOGIN=$(jq -r ".comment.user.login" "$GITHUB_EVENT_PATH")
           
@@ -57,8 +61,12 @@ if [[ "$USER_LOGIN" == "null" ]]; then
 	USER_LOGIN=$(jq -r ".pull_request.user.login" "$GITHUB_EVENT_PATH")
 fi
 
+echo "Getting user info $AUTH_HEADER $API_HEADER $URI $USER_LOGIN"
+
 user_resp=$(curl -X GET -s -H "${AUTH_HEADER}" -H "${API_HEADER}" \
 	"${URI}/users/${USER_LOGIN}")
+
+echo "Extracting user name from user info"
 
 USER_NAME=$(echo "$user_resp" | jq -r ".name")
 if [[ "$USER_NAME" == "null" ]]; then
@@ -66,15 +74,21 @@ if [[ "$USER_NAME" == "null" ]]; then
 fi
 USER_NAME="${USER_NAME} (Rebase PR Action)"
 
+echo "Extracting user email from user info"
+
 USER_EMAIL=$(echo "$user_resp" | jq -r ".email")
 if [[ "$USER_EMAIL" == "null" ]]; then
 	USER_EMAIL="$USER_LOGIN@users.noreply.github.com"
 fi
 
+echo "Confirmaing base branch info for PR #$PR_NUMBER"
+
 if [[ -z "$BASE_BRANCH" ]]; then
 	echo "Cannot get base branch information for PR #$PR_NUMBER!"
 	exit 1
 fi
+
+echo "Setting head repo and head branch"
 
 HEAD_REPO=$(echo "$pr_resp" | jq -r .head.repo.full_name)
 HEAD_BRANCH=$(echo "$pr_resp" | jq -r .head.ref)
@@ -84,6 +98,9 @@ echo "Base branch for PR #$PR_NUMBER is $BASE_BRANCH"
 USER_TOKEN=${USER_LOGIN//-/_}_TOKEN
 UNTRIMMED_COMMITTER_TOKEN=${!USER_TOKEN:-$GITHUB_TOKEN}
 COMMITTER_TOKEN="$(echo -e "${UNTRIMMED_COMMITTER_TOKEN}" | tr -d '[:space:]')"
+
+
+echo "Setup GitHub configs before rebase"
 
 # See https://github.com/actions/checkout/issues/766 for motivation.
 git config --global --add safe.directory /github/workspace
@@ -96,13 +113,19 @@ git remote add fork https://x-access-token:$COMMITTER_TOKEN@github.com/$HEAD_REP
 
 set -o xtrace
 
+echo "Making sure branches are up-to-date"
+
 # make sure branches are up-to-date
 git fetch origin $BASE_BRANCH
 git fetch fork $HEAD_BRANCH
 
+echo "Rebasing"
+
 # do the rebase
 git checkout -b fork/$HEAD_BRANCH fork/$HEAD_BRANCH
 git rebase origin/$BASE_BRANCH
+
+echo "Force pushing"
 
 # push back
 git push --force-with-lease fork fork/$HEAD_BRANCH:$HEAD_BRANCH
